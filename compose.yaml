@@ -21,13 +21,12 @@ services:
       - ~/ai-playground/WIP:/WIP-ai:Z
       
       # Persistent container state
-      - ~/ai-playground/.container_config:/home/developer/.config:Z
-      - ~/ai-playground/.container_share:/home/developer/.local/share:Z
+      - ~/ai-playground/.container_config:/home/root/.config:Z
+      - ~/ai-playground/.container_share:/home/root/.local/share:Z
     
-    # Optional: Environment variables from .env file
-    # .env is in ~/ai-playground/ (created by setup.sh)
+    # Environment variables from .env file (always created by setup.sh)
     env_file:
-      - ~/ai-playground/.env
+      - ${HOME}/ai-playground/.env
     
     user: "1000:1000"
     
