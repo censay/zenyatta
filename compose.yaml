@@ -1,0 +1,53 @@
+services:
+  ai-station:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    
+    container_name: zenyatta
+    network_mode: "bridge"
+    
+    # Port forwarding for dev servers
+    ports:
+      - "5173:5173"   # Vite/React
+      - "3000:3000"   # Next.js
+      - "8080:8080"   # General
+    
+    volumes:
+      # Scaffold files (read-only) - mounted from ~/zenyatta/
+      - ~/zenyatta:/Workspace:ro,Z
+      
+      # AI workspace (airlock copies without .git)
+      - ~/ai-playground/WIP:/WIP-ai:Z
+      
+      # Persistent container state
+      - ~/ai-playground/.container_config:/home/developer/.config:Z
+      - ~/ai-playground/.container_share:/home/developer/.local/share:Z
+    
+    # Optional: Environment variables from .env file
+    # .env is in ~/ai-playground/ (created by setup.sh)
+    env_file:
+      - ~/ai-playground/.env
+    
+    user: "1000:1000"
+    
+    security_opt:
+      - no-new-privileges
+    
+    stdin_open: true
+    tty: true
+
+# WHAT PERSISTS vs WHAT DISAPPEARS
+# ==================================
+# PERSISTS (survives stop/restart):
+#   - ~/ai-playground/repos/           (your source repos)
+#   - ~/ai-playground/WIP/             (AI workspace copies)
+#   - ~/ai-playground/.container_config/  (settings)
+#   - ~/ai-playground/.container_share/   (session state)
+#
+# DISAPPEARS on stop:
+#   - Running processes
+#   - /tmp/ files
+#
+# LOST on container removal (podman rm):
+#   - Packages installed with apt-get (unless in Dockerfile)

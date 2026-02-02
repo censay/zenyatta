@@ -1,0 +1,10 @@
+# Zenyatta Scaffold - Don't commit secrets
+
+.env
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+node_modules/
+*.log
