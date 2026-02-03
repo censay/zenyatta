@@ -28,11 +28,6 @@ services:
     env_file:
       - ${HOME}/ai-playground/.env
     
-    user: "1000:1000"
-    
-    security_opt:
-      - no-new-privileges
-    
     stdin_open: true
     tty: true
 
