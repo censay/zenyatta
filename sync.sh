@@ -77,4 +77,4 @@ rsync -av --delete \
 echo ""
 echo "✅ Synced to airlock"
 echo ""
-echo "Next: playground → cd /WIP-ai/$PROJECT"
+echo "Next: playground → cd /WIP-ai/$PROJECT → work → exit → zen-meld $PROJECT"

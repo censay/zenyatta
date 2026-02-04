@@ -2,88 +2,99 @@
 
 ## Commands
 
+| Command | Description |
+|---------|-------------|
+| `zen-up` | Start container (`podman-compose up -d`) |
+| `zen-down` | Stop container |
+| `zen-rebuild` | Rebuild and restart container |
+| `playground` | Enter container shell |
+| `zen-logs` | Tail container logs |
+| `zen-push <project>` | Copy repo to airlock (strips .git) |
+| `zen-meld <project>` | Open Meld diff: source (LEFT) vs airlock (RIGHT) |
+| `zen-gitfetch <repo>` | Clone `github.com/$USER/<repo>` into `~/ai-playground/repos/` |
+| `zen-help` | List commands |
+
+## Workflow
+
 ```
-zen-up              Start container
-zen-down            Stop container
-zen-rebuild         Rebuild image (use after Dockerfile changes)
-playground          Enter container (type exit to leave)
-zen-push <project>  Copy repo to airlock (strips .git)
-zen-meld <project>  Visual diff airlock vs repo in Meld
-zen-logs            Tail container logs
-zen-help            Print command list
-zen-workflow        Print workflow steps
-zen-ref             Print this file
-```
-
-## Dev Server Binding
-
-Dev servers inside the container must bind to `0.0.0.0` to be visible on the host.
-The `HOST=0.0.0.0` env var is set in the Dockerfile (works for Vite automatically).
-If a server still isn't visible: `npm run dev -- --host 0.0.0.0`
-Ports forwarded: 5173 (Vite), 3000 (Next.js), 8080 (general).
-
-## Persistence
-
-AI tools create temp session data (conversation history, caches) in /tmp/ or ~/.cache.
-That's lost on container stop. agents.md is on a mounted volume — always survives.
-
-**Container running (fine to leave up):** everything stays. No reason to stop between tasks.
-**zen-down → zen-up:** /WIP-ai/, claude.md, agents.md, .env survive. Processes, /tmp/, AI session state, runtime-installed packages lost.
-**zen-rebuild:** same + image rebuilt (apt-get packages not in Dockerfile gone).
-repos/ is never mounted into the container — always safe on host.
-Wipe airlock only: `rm -rf ~/ai-playground/WIP/*` then `zen-push`
-
-## API Keys / Ollama
-
-Edit `~/ai-playground/.env` (NOT `~/zenyatta/.env`).
-See `.env.example` for supported keys (Anthropic, OpenAI, NVIDIA, Ollama).
-After editing .env: `zen-down` then `zen-up` (no rebuild needed for env-only changes).
-Ollama same machine: `OLLAMA_HOST=localhost:11434`
-Ollama remote: `OLLAMA_HOST=192.168.1.100:11434`
-
-## Multi-Project
-
-zen-push syncs to ~/ai-playground/WIP/ which is bind-mounted into the container.
-You can zen-push while the container is running — files appear instantly at /WIP-ai/.
-
-```bash
-# Push multiple repos (container can be running)
-zen-push project-a
-zen-push project-b
-
-# Enter once, both are there
-playground
-ls /WIP-ai/          # project-a/ project-b/
-cd /WIP-ai/project-a && claude
-
-# Exit, review each separately
-exit
-zen-meld project-a
-zen-meld project-b
+zen-gitfetch <repo>  →  checkout/create branch  →  zen-push <repo>
+→  playground  →  work  →  exit  →  zen-meld <repo>  →  git commit
 ```
 
-Use tmux inside the container if working on multiple projects simultaneously.
+Meld merge direction: **RIGHT → LEFT** (AI changes into your source).
 
-## Troubleshooting
+## Branch Workflow
 
-**Container won't start:** `zen-logs`, fix .env syntax, `zen-rebuild`
-**Project not in container:** did you `zen-push`? Check `ls ~/ai-playground/repos/`
-**Meld shows no diff:** don't `zen-push` after working -- that overwrites airlock
-**Aliases not working:** `source ~/.bashrc`
-**Dev server not visible:** use `--host 0.0.0.0` flag (see Dev Server Binding above)
-**Permissions:** `sudo chown -R $USER:$USER ~/ai-playground/`
-**Nuclear reset:** `zen-down && rm -rf ~/ai-playground/.container_* && zen-rebuild`
-
-## GitHub Push
+Always check out or create a branch before pushing to airlock. AI work should happen on a dedicated branch so you can diff, review, and merge cleanly.
 
 ```bash
 cd ~/ai-playground/repos/my-project
-git add . && git commit -m "AI changes" && git push
+git checkout -b ai/feature-name
+zen-push my-project
 ```
 
-Scaffold itself:
+## Directory Layout
+
+```
+~/zenyatta/                          # Scaffold (clone of this repo)
+~/ai-playground/repos/               # Your git repos (with .git)
+~/ai-playground/WIP/                 # Airlock copies (no .git)
+~/ai-playground/.container_config/   # Persisted container config
+~/ai-playground/.container_share/    # Persisted container state
+~/ai-playground/.zen-github-user     # GitHub username for zen-gitfetch
+~/zenyatta/.env                      # API keys (optional, .gitignored)
+```
+
+## Container Paths
+
+```
+/WIP-ai/                            # Airlock workspace (your projects)
+/home/developer/.local/share/zenyatta/claude.md   # AI instructions
+/home/developer/.local/share/zenyatta/agents.md   # Project status
+```
+
+## Persistence
+
+**Survives restart:** `/WIP-ai/` files, config, share, repos
+**Lost on stop:** running processes, temp files
+**Lost on removal (`podman rm`):** installed packages (unless in Dockerfile)
+
+## Ports
+
+| Port | Use |
+|------|-----|
+| 5173 | Vite/React |
+| 3000 | Next.js |
+| 8080 | General |
+
+## .env Variables
+
 ```bash
-cd ~/zenyatta && git add . && git commit -m "Update scaffold" && git push
+ANTHROPIC_API_KEY=        # Claude API
+OPENAI_API_KEY=           # OpenAI
+NVIDIA_API_KEY=           # NVIDIA NIM
+OLLAMA_HOST=              # Ollama endpoint (e.g. http://host.docker.internal:11434)
 ```
 
-Clone on new machine: `git clone <url> ~/zenyatta && cd ~/zenyatta && ./setup.sh`
+Edit at `~/zenyatta/.env` (.gitignored), then `zen-rebuild`.
+
+## GitHub Push
+
+After reviewing with `zen-meld` and committing:
+
+```bash
+cd ~/ai-playground/repos/my-project
+git push origin ai/feature-name
+```
+
+All pushes happen from the host, never from the container.
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| `podman-compose` not found | `pip3 install podman-compose` |
+| Container won't start | `zen-rebuild` |
+| Meld not installed | `sudo apt install meld` |
+| Port conflict | Edit `compose.yaml` ports |
+| zen-gitfetch: no username | `echo 'user' > ~/ai-playground/.zen-github-user` |

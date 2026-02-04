@@ -24,9 +24,9 @@ services:
       - ~/ai-playground/.container_config:/home/root/.config:Z
       - ~/ai-playground/.container_share:/home/root/.local/share:Z
     
-    # Environment variables from .env file (always created by setup.sh)
+    # Environment variables from .env file (created by setup.sh, .gitignored)
     env_file:
-      - ${HOME}/ai-playground/.env
+      - .env
     
     stdin_open: true
     tty: true

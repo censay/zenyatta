@@ -2,7 +2,7 @@
 # Zenyatta Setup - Run once from ~/zenyatta/
 set -e
 
-echo "🧪 Zenyatta Setup"
+echo "🧘 Zenyatta Setup"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 # Check we're in right directory
@@ -58,19 +58,19 @@ fi
 [ ! -f ~/ai-playground/.container_share/zenyatta/claude.md ] && cp claude.md ~/ai-playground/.container_share/zenyatta/
 [ ! -f ~/ai-playground/.container_share/zenyatta/agents.md ] && cp agents.md ~/ai-playground/.container_share/zenyatta/
 
-# Create .env in workspace (not in scaffold)
-if [ ! -f ~/ai-playground/.env ]; then
+# Create .env in scaffold dir (gitignored, read by compose.yaml)
+if [ ! -f ~/zenyatta/.env ]; then
     echo ""
-    echo "📝 Environment variables (.env)"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "Zenyatta works without API keys for basic use."
-    echo "If you use Claude Code, Ollama, OpenAI, or NVIDIA, you'll need keys."
-    echo ""
-    echo "A template has been created at: ~/ai-playground/.env"
-    echo "Edit it anytime with: nano ~/ai-playground/.env"
-    echo ""
-    cp .env.example ~/ai-playground/.env
-    echo "✅ Created .env from template"
+    read -p "Do you need Ollama or API keys? (y/N): " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        cp .env.example ~/zenyatta/.env
+        echo "✅ Created .env at ~/zenyatta/.env"
+        echo "   Edit it with: nano ~/zenyatta/.env"
+    else
+        touch ~/zenyatta/.env
+        echo "✅ Created empty .env (not needed for basic use)"
+    fi
 fi
 
 # Add aliases to .bashrc
@@ -78,12 +78,15 @@ echo ""
 echo "🔧 Adding aliases to ~/.bashrc..."
 
 if grep -q "# Zenyatta aliases" ~/.bashrc 2>/dev/null; then
-    # Remove old aliases block and replace
-    sed -i '/# Zenyatta aliases/,/^$/d' ~/.bashrc
-    echo "♻️  Replacing old aliases..."
-fi
-
-cat >> ~/.bashrc << 'ALIASES'
+    # Update existing aliases: zen-safe-pull → zen-meld
+    if grep -q "zen-safe-pull" ~/.bashrc 2>/dev/null; then
+        sed -i 's/zen-safe-pull/zen-meld/g' ~/.bashrc
+        echo "✅ Updated aliases (zen-safe-pull → zen-meld)"
+    else
+        echo "✅ Aliases already exist"
+    fi
+else
+    cat >> ~/.bashrc << 'ALIASES'
 
 # Zenyatta aliases
 alias zen-up='cd ~/zenyatta && podman-compose up -d && cd - > /dev/null'
@@ -93,69 +96,84 @@ alias playground='podman exec -it zenyatta /bin/bash'
 alias zen-logs='podman logs -f zenyatta'
 alias zen-push='cd ~/zenyatta && ./sync.sh'
 alias zen-meld='cd ~/zenyatta && ./audit.sh'
+alias zen-help='echo ""; echo "🧘 Zenyatta Commands"; echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"; echo "  zen-up              Start container"; echo "  zen-down            Stop container"; echo "  zen-rebuild         Rebuild container"; echo "  playground          Enter container"; echo "  zen-logs            View logs"; echo "  zen-push <project>  Push repo to airlock"; echo "  zen-meld <project>  Visual diff (Meld)"; echo "  zen-gitfetch <repo> Clone from GitHub into sandbox"; echo "  zen-help            This list"; echo ""'
 
-zen-help() {
-  echo "Zenyatta Commands"
-  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  echo "  zen-up              Start container"
-  echo "  zen-down            Stop container"
-  echo "  zen-rebuild         Rebuild container image"
-  echo "  playground          Enter container (exit to leave)"
-  echo "  zen-push <project>  Copy repo → airlock (strips .git)"
-  echo "  zen-meld <project>  Visual diff: airlock vs repo (Meld)"
-  echo "  zen-logs            Tail container logs"
-  echo "  zen-help            This list"
-  echo "  zen-workflow        Recommended workflow steps"
-  echo "  zen-ref             Full reference doc"
-}
-
-zen-workflow() {
-  echo "Zenyatta Workflow"
-  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+zen-gitfetch() {
+  local GITHUB_USER_FILE="$HOME/ai-playground/.zen-github-user"
+  if [ ! -f "$GITHUB_USER_FILE" ]; then
+    echo "❌ No sandbox GitHub username configured"
+    echo ""
+    echo "Re-run setup:  cd ~/zenyatta && ./setup.sh"
+    echo "Or set manually: echo 'yourusername' > ~/ai-playground/.zen-github-user"
+    return 1
+  fi
+  local SANDBOX_USER
+  SANDBOX_USER=$(cat "$GITHUB_USER_FILE")
+  if [ -z "$1" ]; then
+    echo "Usage: zen-gitfetch <repo-name>"
+    echo ""
+    echo "Clones https://github.com/$SANDBOX_USER/<repo> into ~/ai-playground/repos/"
+    echo "Only works for public repos unless you configure SSH keys in the sandbox."
+    echo ""
+    echo "Current repos:"
+    ls -1 ~/ai-playground/repos/ 2>/dev/null || echo "  (none)"
+    return 0
+  fi
+  if [ -d "$HOME/ai-playground/repos/$1" ]; then
+    echo "⚠️  ~/ai-playground/repos/$1 already exists"
+    return 1
+  fi
+  cd ~/ai-playground/repos && git clone "https://github.com/$SANDBOX_USER/$1.git"
+  cd - > /dev/null
   echo ""
-  echo "1. Add project:     cd ~/ai-playground/repos && git clone <url>"
-  echo "2. Start:           zen-up"
-  echo "3. Push to airlock: zen-push my-project  (works while container runs)"
-  echo "4. Enter sandbox:   playground"
-  echo "5. Work:            cd /WIP-ai/my-project && claude"
-  echo "6. Leave:           exit  (container keeps running)"
-  echo "7. Review:          zen-meld my-project  (merge RIGHT→LEFT in Meld)"
-  echo "8. Commit:          cd ~/ai-playground/repos/my-project && git add . && git commit"
-  echo "9. Stop:            zen-down  (only when done for the day)"
-  echo ""
-  echo "Tip: Leave container running between tasks. zen-push adds repos live."
-  echo "Env changes:  edit ~/ai-playground/.env → zen-down → zen-up"
-  echo "Discard AI:   zen-push my-project  (overwrites airlock)"
-  echo "Emergency:    zen-rebuild  (rebuilds image, volumes safe)"
+  echo "Next: Check out the branch you want (or create one), then: zen-push $1"
 }
-
-zen-ref() {
-  cat ~/zenyatta/REFERENCE.md
-}
-
 ALIASES
-echo "✅ Added aliases to ~/.bashrc"
+    echo "✅ Added aliases to ~/.bashrc"
+fi
 
 # Make scripts executable
 chmod +x sync.sh audit.sh setup.sh 2>/dev/null || true
 
+# GitHub username for zen-gitfetch
 echo ""
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "🔧 GitHub username for zen-gitfetch"
+echo "   This lets you clone repos with: zen-gitfetch <repo-name>"
+echo ""
+if [ -f ~/ai-playground/.zen-github-user ]; then
+    EXISTING_USER=$(cat ~/ai-playground/.zen-github-user)
+    echo "   Currently set to: $EXISTING_USER"
+    read -p "   Change it? (y/N): " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        read -p "   GitHub username: " GITHUB_USER
+        if [ -n "$GITHUB_USER" ]; then
+            echo "$GITHUB_USER" > ~/ai-playground/.zen-github-user
+            echo "   ✅ Updated to: $GITHUB_USER"
+        fi
+    fi
+else
+    read -p "   GitHub username (Enter to skip): " GITHUB_USER
+    if [ -n "$GITHUB_USER" ]; then
+        echo "$GITHUB_USER" > ~/ai-playground/.zen-github-user
+        echo "   ✅ Saved: $GITHUB_USER"
+    else
+        echo "   Skipped. Set later with:"
+        echo "   echo 'yourusername' > ~/ai-playground/.zen-github-user"
+    fi
+fi
+
+echo ""
+echo "▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔"
 echo "✅ Setup Complete!"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔"
 echo ""
-echo "Next steps:"
-echo "  1. source ~/.bashrc"
-echo "  2. Edit ~/ai-playground/.env with your API keys (if needed)"
-echo "  3. Add a project:  cd ~/ai-playground/repos && git clone <url>"
-echo "  4. zen-up"
-echo "  5. zen-push <project>"
-echo "  6. playground"
+echo "Clone your project repos here, then check out (or create) the branch you want AI to work on."
 echo ""
-echo "Run zen-help for command list, zen-workflow for full flow."
+echo "  git clone <url>"
+echo "  cd <project> && git checkout -b ai/feature-name"
 echo ""
-echo "💡 Breadcrumbs show where you are:"
-echo "   Host:      your-normal-prompt$"
-echo "   Container: [🧪 ZENYATTA] /WIP-ai/project$"
-echo "   To leave:  type 'exit'"
+echo "Run zen-help for commands."
 echo ""
+
+cd ~/ai-playground && exec $SHELL

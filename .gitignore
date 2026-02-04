@@ -1,10 +1,8 @@
-# Zenyatta Scaffold - Don't commit secrets
-
 .env
 .vscode/
 .idea/
 *.swp
-.DS_Store
-Thumbs.db
+*.swo
+*~
 node_modules/
 *.log
