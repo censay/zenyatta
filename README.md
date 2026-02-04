@@ -1,4 +1,4 @@
-# 🧪 Zenyatta - Zero-Trust AI Sandbox
+# Zenyatta - Zero-Trust AI Sandbox
 
 Secure development environment where AI works on copies of your code, and you manually approve every change.
 
@@ -6,10 +6,10 @@ Secure development environment where AI works on copies of your code, and you ma
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
-# 1. Clone to ~/zenyatta/ (scaffold location)
+# 1. Clone scaffold
 git clone https://github.com/censay/zenyatta.git ~/zenyatta
 cd ~/zenyatta
 
@@ -17,45 +17,30 @@ cd ~/zenyatta
 chmod +x setup.sh && ./setup.sh
 source ~/.bashrc
 
-# 3. Add your project (choose one):
-cd ~/ai-playground/repos
+# 3. (Optional) Edit API keys
+nano ~/ai-playground/.env
 
-# Option A: Clone from GitHub (recommended)
+# 4. Add your project
+cd ~/ai-playground/repos
 git clone <your-repo-url> my-project
 
-# Option B: Clone zenyatta itself to work on scaffold
-git clone git@github.com:censay/zenyatta.git
-
-# Option C: Copy existing (for testing)
-cp -r ~/existing-project ./my-project
-
-# Option D: Move existing (permanent)
-mv ~/existing-project ./my-project
-
-# 4. Start zenyatta
+# 5. Start and work
 zen-up
-
-# 5. Sync project to airlock
 zen-push my-project
-
-# 6. Enter and work
 playground
 cd /WIP-ai/my-project
 claude  # or opencode, or code manually
-# When done: type 'exit' to leave container
+exit    # leave container
 
-# 7. Exit and audit
-exit  # Leaves container, returns to host
-zen-safe-pull my-project
-
-# 8. Commit approved changes
+# 6. Review and commit
+zen-meld my-project            # visual diff in Meld (merge RIGHT -> LEFT)
 cd ~/ai-playground/repos/my-project
 git add . && git commit -m "AI changes"
 ```
 
 ---
 
-## 🔒 Security Model
+## Security Model
 
 **Airlock Pattern:**
 1. Your source repos in `~/ai-playground/repos/` (pristine, with .git)
@@ -65,74 +50,63 @@ git add . && git commit -m "AI changes"
 5. You manually merge approved changes back
 6. Only YOU commit with YOUR git identity
 
-**Container CANNOT:**
-- Commit to git (no .git in airlock)
-- Access your source repos (not mounted)
-- Access your SSH keys
-- Access your credentials
+**Container CANNOT:** commit to git, access your repos, access SSH keys or credentials.
 
 ---
 
-## 📁 Structure
+## Structure
 
 ```
 ~/zenyatta/              # Scaffold installation
 ├── Dockerfile
 ├── compose.yaml
-├── setup.sh            # Run from here
-├── sync.sh
-├── audit.sh
-├── claude.md
-├── agents.md
-└── zen-docs/
+├── setup.sh, sync.sh, audit.sh
+├── claude.md, agents.md
+├── REFERENCE.md         # Full reference doc
+└── .env.example
 
-~/ai-playground/        # Workspace (created by setup)
-├── repos/              # Your git repos
-│   ├── zenyatta/      # (optional) work on scaffold
-│   └── my-projects/
-├── WIP/                # Airlock
-├── .container_config/  # Settings
-├── .container_share/   # State
-└── .env                # API keys
+~/ai-playground/         # Workspace (created by setup)
+├── repos/               # Your git repos
+├── WIP/                 # Airlock (copies without .git)
+├── .container_config/   # Settings
+├── .container_share/    # State
+└── .env                 # API keys
 ```
 
 ---
 
-## 🎮 Commands
+## Commands
 
 All work from anywhere after `source ~/.bashrc`:
 
 ```bash
 zen-up              # Start container
 zen-down            # Stop container
-zen-rebuild         # Rebuild container
-playground          # Enter container (type 'exit' to leave)
-zen-logs            # View logs
-zen-push <project>  # Push to airlock
-zen-safe-pull <project>  # Visual diff with Meld
+zen-rebuild         # Rebuild container image
+playground          # Enter container (type exit to leave)
+zen-push <project>  # Copy repo to airlock (strips .git)
+zen-meld <project>  # Visual diff airlock vs repo in Meld
+zen-logs            # Tail container logs
+zen-help            # Print command list
+zen-workflow        # Print recommended workflow
+zen-ref             # Print full REFERENCE.md to terminal
 ```
 
-**💡 Breadcrumbs:** Your prompt shows where you are:
+**Breadcrumbs:** Your prompt shows where you are:
 - Host: `your-normal-prompt$`
-- Container: `[🧪 ZENYATTA] /WIP-ai/project$`
+- Container: `[ZENYATTA] /WIP-ai/project$`
 - To leave container: type `exit`
 
 ---
 
-## 📚 Documentation
+## Documentation
 
-See `zen-docs/` for detailed guides:
-
-- **workflow.md** - Complete daily workflow
-- **persistence.md** - What survives restarts
-- **ollama-setup.md** - Configuring Ollama
-- **multi-project.md** - Working on multiple repos
-- **troubleshooting.md** - Common issues
-- **github-push.md** - Publishing to GitHub
+Run `zen-ref` or read `REFERENCE.md` for the full reference covering:
+dev server binding, persistence, API keys/Ollama, multi-project, troubleshooting, GitHub push.
 
 ---
 
-## 🛠️ AI Tools Supported
+## AI Tools Supported
 
 - Claude Code (`claude`)
 - opencode-ai (`opencode`)
@@ -142,56 +116,34 @@ All follow same workflow and safety constraints.
 
 ---
 
-## ⚙️ Optional: Ollama / API Keys
+## API Keys / Env
 
-Zenyatta works fine without .env file.
+Zenyatta works without API keys for basic use. If you need them:
 
-Only needed if you use:
-- Ollama (local LLM)
-- NVIDIA API
-- Other API services
-
-To configure:
 ```bash
-# .env is in ~/ai-playground/ (not ~/zenyatta/)
-nano ~/ai-playground/.env
-zen-rebuild
+nano ~/ai-playground/.env    # Edit keys (see .env.example for options)
+zen-down && zen-up           # Restart to pick up changes (no rebuild needed)
 ```
 
-See `zen-docs/ollama-setup.md` for details.
+---
+
+## What Persists
+
+**Container running:** everything stays (leave it running between tasks — it's fine).
+**zen-down → zen-up:** repos/, WIP/, config, state, .env survive. Processes, AI session context, temp files lost.
+**zen-rebuild:** same + image rebuilt.
+
+Your repos/ are never touched by the container.
 
 ---
 
-## 🎯 What Persists vs What Disappears
+## Contributing
 
-**Persists:**
-- `~/ai-playground/repos/` (your source code)
-- `~/ai-playground/WIP/` (airlock copies)
-- `~/ai-playground/.container_config/` (settings)
-- `~/ai-playground/.container_share/` (state)
-
-**Disappears on stop:**
-- Running processes
-- Temp files
-
-See `zen-docs/persistence.md` for complete details.
-
----
-
-## 🤝 Contributing
-
-This is for personal/small team use. Adjust as needed.
-
-Push scaffold to GitHub:
 ```bash
 cd ~/zenyatta
-git init
-git add .
-git commit -m "Zenyatta scaffold"
-git remote add origin git@github.com:censay/zenyatta.git
-git push -u origin main
+git add . && git commit -m "Update scaffold" && git push
 ```
 
 ---
 
-**Questions?** Check `zen-docs/` or open an issue.
+**Questions?** Run `zen-help` or read `REFERENCE.md`.

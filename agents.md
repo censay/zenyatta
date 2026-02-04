@@ -1,28 +1,23 @@
 # Agents Status - Zenyatta Container
 
-**📍 Location:**
+**Location:**
 - Host: `~/ai-playground/.container_share/zenyatta/agents.md`
 - Container: `/home/developer/.local/share/zenyatta/agents.md`
 
-**🔴 IMPORTANT - READ THIS FIRST:**
-Before doing ANYTHING, read `/home/developer/.local/share/zenyatta/claude.md`
+---
 
-That file contains:
-- What you can and cannot do
-- File system layout
-- Safety constraints
-- Workflow instructions
+## Startup Rule
 
-This file (agents.md) contains:
-- Project-specific structure and status
-- Work history
-- Current state
+**READ FIRST:** `/home/developer/.local/share/zenyatta/claude.md`
+That file has your constraints, file system layout, and workflow.
 
-**Always read claude.md first, then check this file for project context.**
+**Then read this file** for project context.
+
+**Do NOT** explore the codebase, scan directories, or read other files until the user tells you what to work on. Start lean -- only load context you need.
 
 ---
 
-## 📋 Active Projects
+## Active Projects
 
 ### personal-site (example - update with actual project)
 - **Type:** React portfolio website
@@ -35,7 +30,7 @@ This file (agents.md) contains:
 
 ---
 
-## 🔄 Work History
+## Work History
 
 ### Template for New Entries
 ```
@@ -50,7 +45,7 @@ This file (agents.md) contains:
 
 ---
 
-## 🎯 Current State
+## Current State
 
 **Active Project:** (none yet)
 **Current Task:** (none yet)
@@ -58,13 +53,13 @@ This file (agents.md) contains:
 
 ---
 
-## 📝 Instructions for AI Agents
+## Instructions for AI Agents
 
-1. **First time here?** Read `/home/developer/.local/share/zenyatta/claude.md` immediately
+1. **First time?** Read `claude.md` immediately
 2. **Starting work?** Check this file for project context
-3. **Finished work?** Update this file with what you did
+3. **Finished?** Update this file with what you did
 4. **Container restarted?** Check this file to see where you left off
-5. **Tell user:** "Type 'exit' to leave, then run: zen-safe-pull <project>"
+5. **Tell user:** "Type 'exit' to leave, then run: zen-meld <project>"
 
 ---
 

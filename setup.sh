@@ -61,16 +61,16 @@ fi
 # Create .env in workspace (not in scaffold)
 if [ ! -f ~/ai-playground/.env ]; then
     echo ""
-    read -p "Do you need Ollama or API keys? (y/N): " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        cp .env.example ~/ai-playground/.env
-        echo "✅ Created .env at ~/ai-playground/.env"
-        echo "   Edit it with: nano ~/ai-playground/.env"
-    else
-        touch ~/ai-playground/.env
-        echo "✅ Created empty .env (not needed for basic use)"
-    fi
+    echo "📝 Environment variables (.env)"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Zenyatta works without API keys for basic use."
+    echo "If you use Claude Code, Ollama, OpenAI, or NVIDIA, you'll need keys."
+    echo ""
+    echo "A template has been created at: ~/ai-playground/.env"
+    echo "Edit it anytime with: nano ~/ai-playground/.env"
+    echo ""
+    cp .env.example ~/ai-playground/.env
+    echo "✅ Created .env from template"
 fi
 
 # Add aliases to .bashrc
@@ -78,21 +78,63 @@ echo ""
 echo "🔧 Adding aliases to ~/.bashrc..."
 
 if grep -q "# Zenyatta aliases" ~/.bashrc 2>/dev/null; then
-    echo "✅ Aliases already exist"
-else
-    cat >> ~/.bashrc << 'ALIASES'
+    # Remove old aliases block and replace
+    sed -i '/# Zenyatta aliases/,/^$/d' ~/.bashrc
+    echo "♻️  Replacing old aliases..."
+fi
+
+cat >> ~/.bashrc << 'ALIASES'
 
 # Zenyatta aliases
-alias zen-up='cd ~/zenyatta && podman-compose up -d'
-alias zen-down='cd ~/zenyatta && podman-compose down'
-alias zen-rebuild='cd ~/zenyatta && podman-compose down && podman-compose up -d --build'
+alias zen-up='cd ~/zenyatta && podman-compose up -d && cd - > /dev/null'
+alias zen-down='cd ~/zenyatta && podman-compose down && cd - > /dev/null'
+alias zen-rebuild='cd ~/zenyatta && podman-compose down && podman-compose up -d --build && cd - > /dev/null'
 alias playground='podman exec -it zenyatta /bin/bash'
 alias zen-logs='podman logs -f zenyatta'
 alias zen-push='cd ~/zenyatta && ./sync.sh'
-alias zen-safe-pull='cd ~/zenyatta && ./audit.sh'
+alias zen-meld='cd ~/zenyatta && ./audit.sh'
+
+zen-help() {
+  echo "Zenyatta Commands"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "  zen-up              Start container"
+  echo "  zen-down            Stop container"
+  echo "  zen-rebuild         Rebuild container image"
+  echo "  playground          Enter container (exit to leave)"
+  echo "  zen-push <project>  Copy repo → airlock (strips .git)"
+  echo "  zen-meld <project>  Visual diff: airlock vs repo (Meld)"
+  echo "  zen-logs            Tail container logs"
+  echo "  zen-help            This list"
+  echo "  zen-workflow        Recommended workflow steps"
+  echo "  zen-ref             Full reference doc"
+}
+
+zen-workflow() {
+  echo "Zenyatta Workflow"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo ""
+  echo "1. Add project:     cd ~/ai-playground/repos && git clone <url>"
+  echo "2. Start:           zen-up"
+  echo "3. Push to airlock: zen-push my-project  (works while container runs)"
+  echo "4. Enter sandbox:   playground"
+  echo "5. Work:            cd /WIP-ai/my-project && claude"
+  echo "6. Leave:           exit  (container keeps running)"
+  echo "7. Review:          zen-meld my-project  (merge RIGHT→LEFT in Meld)"
+  echo "8. Commit:          cd ~/ai-playground/repos/my-project && git add . && git commit"
+  echo "9. Stop:            zen-down  (only when done for the day)"
+  echo ""
+  echo "Tip: Leave container running between tasks. zen-push adds repos live."
+  echo "Env changes:  edit ~/ai-playground/.env → zen-down → zen-up"
+  echo "Discard AI:   zen-push my-project  (overwrites airlock)"
+  echo "Emergency:    zen-rebuild  (rebuilds image, volumes safe)"
+}
+
+zen-ref() {
+  cat ~/zenyatta/REFERENCE.md
+}
+
 ALIASES
-    echo "✅ Added aliases to ~/.bashrc"
-fi
+echo "✅ Added aliases to ~/.bashrc"
 
 # Make scripts executable
 chmod +x sync.sh audit.sh setup.sh 2>/dev/null || true
@@ -102,36 +144,15 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "✅ Setup Complete!"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
-echo "📍 Structure:"
-echo "   ~/zenyatta/           - Scaffold files (you are here)"
-echo "   ~/ai-playground/      - Workspace (repos, WIP, state)"
-echo ""
 echo "Next steps:"
-echo "  1. source ~/.bashrc          # Activate aliases"
+echo "  1. source ~/.bashrc"
+echo "  2. Edit ~/ai-playground/.env with your API keys (if needed)"
+echo "  3. Add a project:  cd ~/ai-playground/repos && git clone <url>"
+echo "  4. zen-up"
+echo "  5. zen-push <project>"
+echo "  6. playground"
 echo ""
-echo "  2. Add your projects to ~/ai-playground/repos/:"
-echo ""
-echo "     # Clone from GitHub (recommended)"
-echo "     cd ~/ai-playground/repos"
-echo "     git clone <url> my-project"
-echo ""
-echo "     # To work on zenyatta scaffold itself:"
-echo "     git clone git@github.com:censay/zenyatta.git"
-echo ""
-echo "     # Copy existing (for testing)"
-echo "     cp -r ~/my-project ~/ai-playground/repos/"
-echo ""
-echo "     # Move existing (permanent)"
-echo "     mv ~/my-project ~/ai-playground/repos/"
-echo ""
-echo "  3. zen-up                    # Build & start"
-echo "  4. zen-push <project>        # Push to airlock"
-echo "  5. playground                # Enter container"
-echo "  6. (work, then type 'exit' to leave)"
-echo "  7. zen-safe-pull <project>   # Review with Meld"
-echo ""
-echo "📖 See README.md for full workflow"
-echo "📖 See zen-docs/ for detailed guides"
+echo "Run zen-help for command list, zen-workflow for full flow."
 echo ""
 echo "💡 Breadcrumbs show where you are:"
 echo "   Host:      your-normal-prompt$"
