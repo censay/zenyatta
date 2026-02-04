@@ -12,7 +12,7 @@ fi
 
 # Check project
 if [ -z "$1" ]; then
-    echo "Usage: zen-safe-pull <project-name>"
+    echo "Usage: zen-meld <project-name>"
     echo ""
     echo "Available:"
     ls -1 ~/ai-playground/repos/ 2>/dev/null || echo "  (none)"
