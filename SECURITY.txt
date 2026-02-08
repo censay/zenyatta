@@ -1,0 +1,74 @@
+ZENYATTA SECURITY HARDENING
+============================
+
+security_opt: no-new-privileges:true
+-------------------------------------
+Prevents processes inside the container from gaining ADDITIONAL privileges
+after startup. Even if malicious code tries to exploit a setuid binary or
+capability escalation, it can't gain more privileges than it started with.
+
+
+cap_drop: ALL
+-------------
+Linux capabilities are granular permissions that break up "root power" into
+smaller pieces. By default, containers get ~14 capabilities. cap_drop: ALL
+removes ALL of them, then we selectively add back only what's needed.
+
+
+cap_add - What we re-enable:
+----------------------------
+
+Capability      Purpose                                      Why Needed
+----------      -------                                      ----------
+CHOWN           Change file ownership                        npm/pip may need to chown files during install
+DAC_OVERRIDE    Bypass file read/write permission checks     Root needs this to access all files in /WIP-ai
+FOWNER          Bypass permission checks on file owner ops   Needed for git operations and file manipulation
+SETGID          Set group ID                                 Process management, running as different groups
+SETUID          Set user ID                                  Process management (node/python may fork processes)
+
+
+What's BLOCKED (examples of dropped capabilities):
+--------------------------------------------------
+
+Dropped         What it would allow
+-------         -------------------
+NET_RAW         Raw socket access (packet sniffing, ping)
+SYS_ADMIN       Mount filesystems, load kernel modules
+SYS_PTRACE      Debug/trace other processes
+NET_ADMIN       Modify network config, iptables
+MKNOD           Create device files
+SYS_CHROOT      Use chroot()
+
+This follows the principle of LEAST PRIVILEGE - the container can still do
+development work but can't do things like sniff network traffic, mount
+filesystems, or trace processes.
+
+
+X11/CLIPBOARD SECURITY
+======================
+
+Instead of using `xhost +local:` (which allows ANY local user to connect to
+your X server), we mount the XAUTHORITY file which contains a session token.
+Only processes with the correct token can access the display.
+
+Native Linux:   Uses /tmp/.X11-unix + ~/.Xauthority
+WSLg (Win11):   Uses /mnt/wslg/.X11-unix (auto-symlinked)
+WSL2+VcXsrv:    Set DISPLAY=<windows-ip>:0 in .env
+
+
+AIRLOCK SECURITY MODEL
+======================
+
+1. Source repos in ~/ai-playground/repos/ (with .git, your real code)
+2. zen-push copies to ~/ai-playground/WIP/ (strips .git for safety)
+3. Container mounts WIP/ at /WIP-ai/ (no git history access)
+4. AI works on these copies
+5. zen-meld opens Meld: LEFT (source) vs RIGHT (AI changes)
+6. You merge approved changes RIGHT to LEFT
+7. You commit from host with your own git identity
+
+Container CANNOT:
+- Commit or push (no .git in working copies)
+- Access source repos directly
+- Access SSH keys or credentials
+- See git history

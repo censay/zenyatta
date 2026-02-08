@@ -2,6 +2,7 @@ FROM node:22-bookworm
 
 RUN apt-get update && apt-get install -y \
     python3 python3-pip git vim rsync nano tree sudo \
+    xclip \
     && rm -rf /var/lib/apt/lists/*
 
 RUN pip3 install opencode-ai requests --break-system-packages

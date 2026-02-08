@@ -41,6 +41,7 @@ zen-push my-project
 ~/ai-playground/WIP/                 # Airlock copies (no .git)
 ~/ai-playground/.container_config/   # Persisted container config
 ~/ai-playground/.container_share/    # Persisted container state
+~/ai-playground/.container_claude/   # Claude Code auth (persists across rebuilds)
 ~/ai-playground/.zen-github-user     # GitHub username for zen-gitfetch
 ~/zenyatta/.env                      # API keys (optional, .gitignored)
 ```
@@ -48,14 +49,15 @@ zen-push my-project
 ## Container Paths
 
 ```
-/WIP-ai/                            # Airlock workspace (your projects)
-/home/developer/.local/share/zenyatta/claude.md   # AI instructions
-/home/developer/.local/share/zenyatta/agents.md   # Project status
+/WIP-ai/                             # Airlock workspace (your projects)
+/root/.local/share/zenyatta/claude.md    # AI instructions
+/root/.local/share/zenyatta/agents.md    # Project status
+/root/.claude/                           # Claude Code config & auth
 ```
 
 ## Persistence
 
-**Survives restart:** `/WIP-ai/` files, config, share, repos
+**Survives restart:** `/WIP-ai/` files, config, share, repos, Claude auth
 **Lost on stop:** running processes, temp files
 **Lost on removal (`podman rm`):** installed packages (unless in Dockerfile)
 
@@ -69,14 +71,30 @@ zen-push my-project
 
 ## .env Variables
 
-```bash
-ANTHROPIC_API_KEY=        # Claude API
-OPENAI_API_KEY=           # OpenAI
-NVIDIA_API_KEY=           # NVIDIA NIM
-OLLAMA_HOST=              # Ollama endpoint (e.g. http://host.docker.internal:11434)
-```
+See `.env.example` for all supported providers:
+- **AI APIs:** Anthropic, OpenAI, Google, Groq, Together, Mistral, Azure
+- **Local/Network:** Ollama (supports `192.168.x.x` or `host.docker.internal`)
+- **Other:** NVIDIA NIM, X11 display overrides
 
 Edit at `~/zenyatta/.env` (.gitignored), then `zen-rebuild`.
+
+## Clipboard
+
+Container includes `xclip` for X11 clipboard access:
+
+```bash
+echo "text" | xclip -selection clipboard   # copy
+xclip -selection clipboard -o              # paste
+```
+
+Works on native Linux, WSLg (Windows 11), and WSL2+VcXsrv.
+
+## Security
+
+See [SECURITY.txt](SECURITY.txt) for container hardening details:
+- Capability restrictions (least privilege)
+- X11 authentication (XAUTHORITY vs xhost)
+- Airlock security model
 
 ## GitHub Push
 

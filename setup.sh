@@ -28,7 +28,7 @@ fi
 
 # Create workspace directory structure (separate from scaffold)
 echo "📁 Creating workspace at ~/ai-playground/..."
-mkdir -p ~/ai-playground/{.container_config,.container_share/zenyatta,repos,WIP}
+mkdir -p ~/ai-playground/{.container_config,.container_share/zenyatta,.container_claude,repos,WIP}
 
 echo "✅ Directories created:"
 echo "   ~/zenyatta/                       - Scaffold (you are here)"
@@ -77,18 +77,14 @@ fi
 echo ""
 echo "🔧 Adding aliases to ~/.bashrc..."
 
-if grep -q "# Zenyatta aliases" ~/.bashrc 2>/dev/null; then
-    # Update existing aliases: zen-safe-pull → zen-meld
-    if grep -q "zen-safe-pull" ~/.bashrc 2>/dev/null; then
-        sed -i 's/zen-safe-pull/zen-meld/g' ~/.bashrc
-        echo "✅ Updated aliases (zen-safe-pull → zen-meld)"
-    else
-        echo "✅ Aliases already exist"
-    fi
-else
-    cat >> ~/.bashrc << 'ALIASES'
+# Remove existing Zenyatta block if present
+sed -i '/^# >>> ZENYATTA START >>>/,/^# <<< ZENYATTA END <<</d' ~/.bashrc
 
-# Zenyatta aliases
+# Append fresh block with markers
+cat >> ~/.bashrc << 'ALIASES'
+
+# >>> ZENYATTA START >>>
+# Zenyatta aliases - managed by setup.sh (do not edit manually)
 alias zen-up='cd ~/zenyatta && podman-compose up -d && cd - > /dev/null'
 alias zen-down='cd ~/zenyatta && podman-compose down && cd - > /dev/null'
 alias zen-rebuild='cd ~/zenyatta && podman-compose down && podman-compose up -d --build && cd - > /dev/null'
@@ -128,9 +124,9 @@ zen-gitfetch() {
   echo ""
   echo "Next: Check out the branch you want (or create one), then: zen-push $1"
 }
+# <<< ZENYATTA END <<<
 ALIASES
-    echo "✅ Added aliases to ~/.bashrc"
-fi
+echo "✅ Updated aliases in ~/.bashrc"
 
 # Make scripts executable
 chmod +x sync.sh audit.sh setup.sh 2>/dev/null || true

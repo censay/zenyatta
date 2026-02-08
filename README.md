@@ -1,4 +1,4 @@
-# 🧘 Zenyatta - Zero-Trust AI Sandbox
+# Zenyatta - Zero-Trust AI Sandbox
 
 Isolated container where AI works on copies of your code. You review every change in Meld before merging.
 
@@ -55,35 +55,17 @@ git add . && git commit -m "AI changes"
 ├── setup.sh / sync.sh / audit.sh
 ├── claude.md / agents.md
 ├── REFERENCE.md
+├── SECURITY.txt
 └── .env                 # API keys (.gitignored)
 
 ~/ai-playground/         # Workspace (created by setup)
 ├── repos/               # Your git repos
 ├── WIP/                 # Airlock (no .git)
-├── .container_config/
-├── .container_share/
+├── .container_config/   # App settings (persists)
+├── .container_share/    # Session state (persists)
+├── .container_claude/   # Claude Code auth (persists)
 └── .zen-github-user
 ```
-
----
-
-## Commands
-
-```
-zen-up              Start container
-zen-down            Stop container
-zen-rebuild         Rebuild container
-playground          Enter container (exit to leave)
-zen-logs            View logs
-zen-push <project>  Push repo to airlock
-zen-meld <project>  Visual diff with Meld
-zen-gitfetch <repo> Clone from your GitHub into repos/
-zen-help            Command list
-```
-
-**Prompt breadcrumbs:**
-- Host: `your-normal-prompt$`
-- Container: `[🧘 ZENYATTA] /WIP-ai/project$`
 
 ---
 
@@ -97,13 +79,8 @@ All follow the same airlock workflow.
 
 ---
 
-## Optional: API Keys
+## More Info
 
-Only needed for Ollama, NVIDIA API, or other services.
+See [REFERENCE.md](REFERENCE.md) for commands, ports, .env variables, clipboard, and troubleshooting.
 
-```bash
-nano ~/zenyatta/.env
-zen-rebuild
-```
-
-See REFERENCE.md for details.
+See [SECURITY.txt](SECURITY.txt) for container hardening details.

@@ -16,28 +16,59 @@ services:
     volumes:
       # Scaffold files (read-only) - mounted from ~/zenyatta/
       - ~/zenyatta:/Workspace:ro,Z
-      
+
       # AI workspace (airlock copies without .git)
       - ~/ai-playground/WIP:/WIP-ai:Z
-      
-      # Persistent container state
-      - ~/ai-playground/.container_config:/home/root/.config:Z
-      - ~/ai-playground/.container_share:/home/root/.local/share:Z
-    
+
+      # Persistent container state (root's home is /root, not /home/root)
+      - ~/ai-playground/.container_config:/root/.config:Z
+      - ~/ai-playground/.container_share:/root/.local/share:Z
+
+      # Claude Code auth persistence (survives container rebuilds)
+      - ~/ai-playground/.container_claude:/root/.claude:Z
+
+      # X11 clipboard access - supports native Linux, WSLg (Win11), and WSL2+VcXsrv
+      # Native Linux / WSL2+VcXsrv: /tmp/.X11-unix
+      # WSLg (Windows 11): /mnt/wslg/.X11-unix (symlinked to /tmp/.X11-unix by WSLg)
+      - ${X11_SOCKET_PATH:-/tmp/.X11-unix}:/tmp/.X11-unix:rw
+      # X11 auth token (more secure than xhost +local:)
+      - ${XAUTHORITY:-~/.Xauthority}:/root/.Xauthority:ro
+
     # Environment variables from .env file (created by setup.sh, .gitignored)
     env_file:
       - .env
+
+    # X11 display for clipboard access
+    environment:
+      - DISPLAY=${DISPLAY:-:0}
+      - XAUTHORITY=/root/.Xauthority
+      # WSL2 interop (if needed)
+      - WSL_DISTRO_NAME=${WSL_DISTRO_NAME:-}
+      - WAYLAND_DISPLAY=${WAYLAND_DISPLAY:-}
+
+    # Security hardening
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
     
     stdin_open: true
     tty: true
 
 # WHAT PERSISTS vs WHAT DISAPPEARS
 # ==================================
-# PERSISTS (survives stop/restart):
-#   - ~/ai-playground/repos/           (your source repos)
-#   - ~/ai-playground/WIP/             (AI workspace copies)
+# PERSISTS (survives stop/restart AND rebuilds):
+#   - ~/ai-playground/repos/              (your source repos)
+#   - ~/ai-playground/WIP/                (AI workspace copies)
 #   - ~/ai-playground/.container_config/  (settings)
 #   - ~/ai-playground/.container_share/   (session state)
+#   - ~/ai-playground/.container_claude/  (Claude Code auth & settings)
 #
 # DISAPPEARS on stop:
 #   - Running processes
