@@ -88,8 +88,10 @@ cat >> ~/.bashrc << 'ALIASES'
 alias zen-up='cd ~/zenyatta && podman-compose up -d && cd - > /dev/null'
 alias zen-down='cd ~/zenyatta && podman-compose down && cd - > /dev/null'
 alias zen-rebuild='cd ~/zenyatta && podman-compose down && podman-compose up -d --build && cd - > /dev/null'
-alias playground='podman exec -it zenyatta /bin/bash'
-alias zen-logs='podman logs -f zenyatta'
+
+alias playground='cd ~/zenyatta && podman-compose exec ai-station /bin/bash'
+alias zen-logs='cd ~/zenyatta && podman-compose logs -f ai-station'
+
 alias zen-push='cd ~/zenyatta && ./sync.sh'
 alias zen-meld='cd ~/zenyatta && ./audit.sh'
 alias zen-help='echo ""; echo "🧘 Zenyatta Commands"; echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"; echo "  zen-up              Start container"; echo "  zen-down            Stop container"; echo "  zen-rebuild         Rebuild container"; echo "  playground          Enter container"; echo "  zen-logs            View logs"; echo "  zen-push <project>  Push repo to airlock"; echo "  zen-meld <project>  Visual diff (Meld)"; echo "  zen-gitfetch <repo> Clone from GitHub into sandbox"; echo "  zen-help            This list"; echo ""'
@@ -125,6 +127,9 @@ zen-gitfetch() {
   echo "Next: Check out the branch you want (or create one), then: zen-push $1"
 }
 # <<< ZENYATTA END <<<
+
+
+
 ALIASES
 echo "✅ Updated aliases in ~/.bashrc"
 

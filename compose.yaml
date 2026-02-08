@@ -48,7 +48,7 @@ services:
 
     # Security hardening
     security_opt:
-      - no-new-privileges:true
+      - no-new-privileges
     cap_drop:
       - ALL
     cap_add:
