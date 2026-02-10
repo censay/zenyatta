@@ -99,7 +99,7 @@ alias zen-help='echo ""; echo "🧘 Zenyatta Commands"; echo "━━━━━━
 zen-gitfetch() {
   local GITHUB_USER_FILE="$HOME/ai-playground/.zen-github-user"
   if [ ! -f "$GITHUB_USER_FILE" ]; then
-    echo "❌ No sandbox GitHub username configured"
+    echo "❌ No GitHub username configured"
     echo ""
     echo "Re-run setup:  cd ~/zenyatta && ./setup.sh"
     echo "Or set manually: echo 'yourusername' > ~/ai-playground/.zen-github-user"
@@ -110,8 +110,8 @@ zen-gitfetch() {
   if [ -z "$1" ]; then
     echo "Usage: zen-gitfetch <repo-name>"
     echo ""
-    echo "Clones https://github.com/$SANDBOX_USER/<repo> into ~/ai-playground/repos/"
-    echo "Only works for public repos unless you configure SSH keys in the sandbox."
+    echo "Clones git@github.com:$SANDBOX_USER/<repo> into ~/ai-playground/repos/"
+    echo "Uses SSH — ensure your host has SSH keys configured for GitHub."
     echo ""
     echo "Current repos:"
     ls -1 ~/ai-playground/repos/ 2>/dev/null || echo "  (none)"
@@ -121,7 +121,7 @@ zen-gitfetch() {
     echo "⚠️  ~/ai-playground/repos/$1 already exists"
     return 1
   fi
-  cd ~/ai-playground/repos && git clone "https://github.com/$SANDBOX_USER/$1.git"
+  cd ~/ai-playground/repos && git clone "git@github.com:$SANDBOX_USER/$1.git"
   cd - > /dev/null
   echo ""
   echo "Next: Check out the branch you want (or create one), then: zen-push $1"
