@@ -1,0 +1,104 @@
+#!/bin/bash
+#
+# zen-meld - Compare and merge changes with Meld
+# Usage: zen-meld [project-name]
+#
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/lib/zen-core.sh"
+source "${SCRIPT_DIR}/lib/zen-backup.sh"
+
+# Check prerequisites
+zen_check_not_in_container || exit 1
+zen_check_setup || exit 1
+
+# Check for meld
+if ! command -v meld &>/dev/null; then
+    zen_error "Meld not installed"
+    echo ""
+    read -p "Install Meld now? (y/N): " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        sudo apt-get update && sudo apt-get install -y meld
+    else
+        echo "Install manually: sudo apt install meld"
+        exit 1
+    fi
+fi
+
+# Get project name
+PROJECT="${1:-}"
+
+# If no project specified, use last project
+if [[ -z "${PROJECT}" ]]; then
+    PROJECT=$(zen_get_last_project)
+    if [[ -z "${PROJECT}" ]]; then
+        zen_error "No project specified and no previous project found"
+        exit 1
+    fi
+    zen_info "Using last project: ${PROJECT}"
+fi
+
+# Validate paths
+SOURCE="${ZEN_REPOS}/${PROJECT}"
+AIRLOCK="${ZEN_WIP}/${PROJECT}"
+
+if [[ ! -d "${SOURCE}" ]]; then
+    zen_error "Source not found: ${SOURCE}"
+    exit 1
+fi
+
+if [[ ! -d "${AIRLOCK}" ]]; then
+    zen_error "Airlock not found (run zen-push first)"
+    echo ""
+    echo "💡 Run: zen-push ${PROJECT}"
+    exit 1
+fi
+
+# Save as last project
+zen_set_last_project "${PROJECT}"
+
+echo "🔬 Opening Meld"
+zen_divider
+
+# Create backup
+echo "📦 Creating backup..."
+if BACKUP_FILE=$(zen_backup_create "${PROJECT}"); then
+    local size
+    size=$(du -h "${BACKUP_FILE}" 2>/dev/null | cut -f1)
+    zen_success "Backup created: ${BACKUP_FILE} (${size})"
+else
+    zen_warn "Backup failed, but continuing..."
+fi
+
+echo ""
+echo "Comparing:"
+echo "  LEFT  (source): ${SOURCE}"
+echo "  RIGHT (AI):     ${AIRLOCK}"
+echo ""
+echo "⚠️  Merge direction: RIGHT → LEFT (AI changes into your source)"
+echo ""
+
+# Launch meld with excludes if supported
+if zen_meld_has_exclude; then
+    meld --exclude="node_modules" --exclude="dist" --exclude="build" \
+        "${SOURCE}" "${AIRLOCK}"
+else
+    meld "${SOURCE}" "${AIRLOCK}"
+fi
+
+echo ""
+zen_success "Meld closed"
+echo ""
+echo "Next steps:"
+echo "  cd ${SOURCE}"
+echo "  git status                    # Review changes"
+echo "  git add . && git commit -m 'AI changes'"
+echo ""
+echo "Made a mistake? Restore from backup:"
+echo "  zen-restore ${PROJECT}"
+
+# Return to repo directory
+cd "${SOURCE}"

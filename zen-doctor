@@ -1,0 +1,124 @@
+#!/bin/bash
+#
+# zen-doctor - Check Zenyatta setup health
+# Usage: zen-doctor
+#
+
+set -euo pipefail
+
+echo "🩺 Zenyatta Doctor"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+
+ISSUES=0
+
+# Check 1: In correct directory
+if [[ "$(pwd)" != "${HOME}/zenyatta" ]]; then
+    echo "⚠️  Not in ~/zenyatta/ directory"
+    echo "   Current: $(pwd)"
+    echo "   Fix: cd ~/zenyatta"
+    ((ISSUES++))
+else
+    echo "✅ In correct directory"
+fi
+
+# Check 2: Aliases loaded
+if ! type zen-help &>/dev/null; then
+    echo ""
+    echo "❌ Commands not loaded"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "The zen-* commands are not available in this shell."
+    echo ""
+    echo "Fix by running ONE of these:"
+    echo "  1. source ~/.bashrc           (recommended)"
+    echo "  2. Open a new terminal"
+    echo ""
+    echo "Or run scripts directly:"
+    echo "  ./zen-help"
+    echo "  ./zen-status"
+    echo ""
+    ((ISSUES++))
+else
+    echo "✅ Commands loaded"
+fi
+
+# Check 3: Workspace exists
+if [[ ! -d "${HOME}/ai-playground" ]]; then
+    echo "⚠️  Workspace not found: ~/ai-playground/"
+    echo "   Fix: Re-run setup.sh"
+    ((ISSUES++))
+else
+    echo "✅ Workspace exists"
+fi
+
+# Check 4: Podman installed
+if ! command -v podman &>/dev/null; then
+    echo "❌ Podman not installed"
+    echo "   Fix: sudo apt install podman podman-compose"
+    ((ISSUES++))
+else
+    echo "✅ Podman installed"
+fi
+
+# Check 5: Meld installed
+if ! command -v meld &>/dev/null; then
+    echo "⚠️  Meld not installed (needed for zen-meld)"
+    echo "   Fix: sudo apt install meld"
+    ((ISSUES++))
+else
+    echo "✅ Meld installed"
+fi
+
+# Check 6: Container status
+echo ""
+echo "📦 Container Status"
+echo "─────────────────────────────────────"
+if command -v podman &>/dev/null; then
+    if podman ps | grep -q zenyatta; then
+        echo "✅ Container running"
+    elif podman ps -a | grep -q zenyatta; then
+        echo "⏹️  Container stopped (run: zen-start)"
+    else
+        echo "⚠️  Container not created (run: zen-start)"
+    fi
+else
+    echo "❌ Cannot check (podman not installed)"
+fi
+
+# Check 7: Projects
+echo ""
+echo "📁 Projects"
+echo "─────────────────────────────────────"
+REPO_COUNT=$(ls -1 "${HOME}/ai-playground/repos" 2>/dev/null | wc -l)
+echo "Repos: ${REPO_COUNT}"
+if [[ ${REPO_COUNT} -gt 0 ]]; then
+    ls -1 "${HOME}/ai-playground/repos" 2>/dev/null | head -5 | sed 's/^/  - /'
+fi
+
+# Check 8: Backups
+echo ""
+echo "💾 Backups"
+echo "─────────────────────────────────────"
+if [[ -d "${HOME}/ai-playground/backup" ]]; then
+    BACKUP_COUNT=$(ls -1 "${HOME}/ai-playground/backup"/*-repobak.tar.gz 2>/dev/null | wc -l)
+    echo "Found: ${BACKUP_COUNT} backup(s)"
+else
+    echo "No backups yet (created automatically by zen-meld)"
+fi
+
+# Summary
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+if [[ ${ISSUES} -eq 0 ]]; then
+    echo "✅ All checks passed!"
+    echo ""
+    echo "Ready to use. Try:"
+    echo "  zen-help       # Show commands"
+    echo "  zen-status     # Full status"
+    echo "  zen-workflow   # See example"
+else
+    echo "⚠️  Found ${ISSUES} issue(s)"
+    echo ""
+    echo "Fix the issues above, then run: zen-doctor"
+fi

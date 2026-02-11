@@ -1,0 +1,31 @@
+#!/bin/bash
+#
+# zen-stop - Stop the Zenyatta container
+# Usage: zen-stop
+#
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/lib/zen-core.sh"
+
+# Check prerequisites
+zen_check_not_in_container || exit 1
+zen_check_setup || exit 1
+
+echo "⏹️  Stopping Zenyatta container"
+zen_divider
+
+cd "${HOME}/zenyatta"
+
+# Check if running
+if ! podman ps | grep -q zenyatta; then
+    zen_info "Container is not running"
+    exit 0
+fi
+
+podman-compose down
+
+zen_success "Container stopped"
+echo ""
+echo "💡 Your repos and WIP are safe in ~/ai-playground/"

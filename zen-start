@@ -1,0 +1,41 @@
+#!/bin/bash
+#
+# zen-start - Start the Zenyatta container
+# Usage: zen-start
+#
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/lib/zen-core.sh"
+
+# Check prerequisites
+zen_check_not_in_container || exit 1
+zen_check_setup || exit 1
+
+echo "🚀 Starting Zenyatta container"
+zen_divider
+
+cd "${HOME}/zenyatta"
+
+# Check if already running
+if podman ps | grep -q zenyatta; then
+    zen_info "Container already running"
+    echo ""
+    echo "💡 Enter with: zen-enter (or playground)"
+    exit 0
+fi
+
+# Check if exists but stopped
+if podman ps -a | grep -q zenyatta; then
+    zen_info "Starting existing container..."
+    podman start zenyatta
+else
+    zen_info "Creating and starting container..."
+    podman-compose up -d
+fi
+
+zen_success "Container started"
+echo ""
+echo "💡 Enter with: zen-enter (or playground)"
+echo "💡 View logs with: zen-logs"

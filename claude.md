@@ -1,91 +1,184 @@
-# Instructions for AI Agents
+# Instructions for AI Agents in Zenyatta Sandbox
 
-**Location:** `/root/.local/share/zenyatta/claude.md`
+**READ THIS FIRST** - Complete guide for working in this isolated AI sandbox.
 
 ---
 
 ## What You Are
 
-You are an AI assistant working in an isolated sandbox container called "zenyatta". You work on **copies** of code without `.git` directories — you cannot accidentally commit or push.
+You are an AI assistant (Claude, OpenCode, or similar) running inside an isolated container called "Zenyatta". You work on **copies** of code in `/WIP-ai/` without `.git` directories — you **cannot** commit, push, or access source repositories directly.
 
 ---
 
-## File System
+## File System Structure
 
 ```
-/WIP-ai/                              # Your workspace (copies, no .git)
-├── project-name/                     # Work here
-└── other-projects/
+/WIP-ai/                              # Your workspace (copies only, no .git)
+├── project-name/                     # WORK HERE - AI modifies these copies
+│   ├── src/                          # Source files
+│   ├── package.json                  # Project config
+│   └── ...                           # Other files
+└── other-projects/                   # Multiple projects possible
 
 /root/.local/share/zenyatta/
-├── claude.md                         # This file
-└── agents.md                         # Project status
+├── claude.md                         # This file (AI instructions)
+└── agents.md                         # Project status and work history (UPDATE THIS)
+
+/root/.config/opencode/               # OpenCode config (if using opencode)
+/root/.claude/                        # Claude Code config
 ```
 
----
-
-## What You CAN and CANNOT Do
-
-**CAN:** Read/modify files in `/WIP-ai/`, run commands, install packages, create/delete files.
-
-**CANNOT:** Commit to git, push to remote, access source repos, access SSH keys or credentials.
-
-If user asks to commit:
-> "I can't commit — this sandbox has no .git. After you review with `zen-meld`, commit in your repo at `~/ai-playground/repos/<project>/`"
+**Outside the container (host machine):**
+- `~/ai-playground/repos/` - Original repos with .git (user commits here)
+- `~/ai-playground/WIP/` - Same as /WIP-ai/ (mounted)
+- `~/ai-playground/backup/` - repobak.tar.gz backups
 
 ---
 
-## Workflow
+## What You CAN Do
 
-### 1. Before Starting
+✅ Read/modify files in `/WIP-ai/`  
+✅ Run commands (npm, pip, etc.)  
+✅ Install packages  
+✅ Create/delete files  
+✅ Test code (ports 5173, 3000, 8080 forwarded)  
+
+---
+
+## What You CANNOT Do
+
+❌ Commit to git (no .git directory - DO NOT run `git init`)  
+❌ Push to remote  
+❌ Access source repos directly  
+❌ Access SSH keys or credentials  
+❌ Access the internet (limited by container)  
+❌ Initialize git repos (changes are hand-merged via Meld later)  
+
+---
+
+## Workflow (CRITICAL - FOLLOW THIS)
+
+### Step 1: Check Current Status
 ```bash
-ls -la /WIP-ai/                                    # See projects
-cd /WIP-ai/<project-name>
-cat /root/.local/share/zenyatta/agents.md         # Check project status
+whereami                    # Shows location and available projects
+cat /root/.local/share/zenyatta/agents.md   # Read project status
+cd /WIP-ai/<project-name>   # Navigate to project
 ```
 
-### 2. Do Your Work
-Make changes, test, iterate.
+### Step 2: Understand the Task
+- Read the user's request carefully
+- Check `agents.md` for context from previous sessions
+- Ask clarifying questions if needed
 
-### 3. After Finishing
-Update `/root/.local/share/zenyatta/agents.md` with:
-- Timestamp, what changed, why, any issues
+### Step 3: Do the Work
+- Make changes to files in `/WIP-ai/<project>/`
+- Test your changes
+- Iterate as needed
+- **NEVER** try to git commit, push, or run `git init` from here
+- **NO .git DIRECTORY** - Changes will be hand-merged by user via Meld later
 
-### 4. Tell User
+### Step 4: Document Your Work
+**CRITICAL: Update `/root/.local/share/zenyatta/agents.md` with:**
+- Timestamp
+- What you changed
+- Why you changed it
+- Any issues or blockers
+- Files modified
+
+### Step 5: Tell User to Exit and Review
 ```
-"Done! Type 'exit' to leave, then run: zen-meld <project>"
+"Done! I've made the following changes:
+1. Modified: [list files]
+2. Purpose: [brief description]
+3. Testing: [what was tested]
+
+Type 'exit' to leave the container, then run on the host:
+  zen-meld <project-name>
+
+This will open Meld so you can review and merge changes from RIGHT (AI) to LEFT (source)."
 ```
 
 ---
 
-## Testing
+## Available Commands
 
+**Inside container:**
+```bash
+whereami                           # Show location and projects
+ls -la /WIP-ai/                    # List all projects
+cd /WIP-ai/<project>               # Navigate to project
+npm install && npm run dev         # Test (ports forwarded to host)
+exit                               # Leave container (DON'T FORGET THIS)
+```
+
+**On host (user runs these):**
+```bash
+zen-push <project>                 # Copy repo → airlock
+zen-enter (or: playground)         # Enter this container
+zen-meld <project>                 # Review changes (RIGHT → LEFT)
+zen-status                         # Check everything
+```
+
+---
+
+## Common Tasks
+
+### Testing Web Apps
 ```bash
 cd /WIP-ai/project-name
-npm install && npm run dev   # User accesses at localhost:5173
+npm install
+npm run dev
+```
+User accesses at `localhost:5173` (Vite) or `localhost:3000` (Next.js)
+
+### Installing Packages
+```bash
+# Node.js
+npm install <package>
+
+# Python
+pip3 install <package>
+
+# System packages (won't persist after container rebuild)
+apt-get update && apt-get install -y <package>
 ```
 
-Ports: 5173 (Vite), 3000 (Next.js), 8080 (general)
+### Checking What Changed
+```bash
+cd /WIP-ai/<project>
+find . -type f -newer /root/.local/share/zenyatta/agents.md  # Files you modified
+```
 
 ---
 
-## State
+## Important Reminders
 
-**Persists:** `/WIP-ai/` files, claude.md, agents.md, npm/pip packages in project dirs
-
-**Lost on stop:** Running processes, `/tmp/` files
+1. **Always update agents.md** - Future AI sessions read this for context
+2. **Never mention you can commit** - Users must run zen-meld on host
+3. **Work in /WIP-ai/ only** - Don't modify files outside this directory
+4. **Exit when done** - User can't review until you exit
+5. **Be explicit about changes** - List what files you modified and why
 
 ---
 
 ## Quick Reference
 
+**Command Cheat Sheet:**
 ```bash
 whereami                                           # Show location & projects
-cat /root/.local/share/zenyatta/agents.md          # Check status
+cat /root/.local/share/zenyatta/agents.md          # Check project status
 ls -la /WIP-ai/                                    # List projects
-exit                                               # Leave container
+cd /WIP-ai/<project> && ls                         # Navigate & list files
+exit                                               # Leave container (user reviews)
+```
+
+**User's Next Steps After You Exit:**
+```bash
+zen-meld <project>        # Open Meld, merge RIGHT → LEFT
+cd ~/ai-playground/repos/<project>
+git add . && git commit -m "AI changes"
 ```
 
 ---
 
-**Summary:** Read agents.md for context, work on copies in `/WIP-ai/`, update agents.md when done, tell user to `exit` then `zen-meld`.
+**Summary:** Work in `/WIP-ai/`, update `agents.md` with changes, tell user to `exit` then `zen-meld`.

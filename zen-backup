@@ -1,0 +1,46 @@
+#!/bin/bash
+#
+# zen-backup - Create explicit backup of project
+# Usage: zen-backup [project-name]
+#
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/lib/zen-core.sh"
+source "${SCRIPT_DIR}/lib/zen-backup.sh"
+
+# Check prerequisites
+zen_check_not_in_container || exit 1
+zen_check_setup || exit 1
+
+# Get project name
+PROJECT="${1:-}"
+
+# If no project specified, use last project
+if [[ -z "${PROJECT}" ]]; then
+    PROJECT=$(zen_get_last_project)
+    if [[ -z "${PROJECT}" ]]; then
+        zen_error "No project specified and no previous project found"
+        echo ""
+        echo "Usage: zen-backup <project-name>"
+        exit 1
+    fi
+    zen_info "Using last project: ${PROJECT}"
+fi
+
+# Validate project
+zen_validate_project "${PROJECT}" || exit 1
+
+echo "💾 Creating backup"
+zen_divider
+
+if BACKUP_FILE=$(zen_backup_create "${PROJECT}"); then
+    local size
+    size=$(du -h "${BACKUP_FILE}" 2>/dev/null | cut -f1)
+    zen_success "Backup created: ${BACKUP_FILE}"
+    echo "Size: ${size}"
+else
+    zen_error "Backup failed"
+    exit 1
+fi

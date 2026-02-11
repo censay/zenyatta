@@ -58,6 +58,9 @@ fi
 [ ! -f ~/ai-playground/.container_share/zenyatta/claude.md ] && cp claude.md ~/ai-playground/.container_share/zenyatta/
 [ ! -f ~/ai-playground/.container_share/zenyatta/agents.md ] && cp agents.md ~/ai-playground/.container_share/zenyatta/
 
+# Create local state directory
+mkdir -p ~/zenyatta/.states
+
 # Create .env in scaffold dir (gitignored, read by compose.yaml)
 if [ ! -f ~/zenyatta/.env ]; then
     echo ""
@@ -85,47 +88,24 @@ cat >> ~/.bashrc << 'ALIASES'
 
 # >>> ZENYATTA START >>>
 # Zenyatta aliases - managed by setup.sh (do not edit manually)
-alias zen-up='cd ~/zenyatta && podman-compose up -d && cd - > /dev/null'
-alias zen-down='cd ~/zenyatta && podman-compose down && cd - > /dev/null'
+alias zen-start='cd ~/zenyatta && ./zen-start'
+alias zen-stop='cd ~/zenyatta && ./zen-stop'
 alias zen-rebuild='cd ~/zenyatta && podman-compose down && podman-compose up -d --build && cd - > /dev/null'
 
-alias playground='cd ~/zenyatta && podman-compose exec ai-station /bin/bash'
-alias zen-logs='cd ~/zenyatta && podman-compose logs -f ai-station'
+alias playground='cd ~/zenyatta && ./zen-enter'
+alias zen-enter='cd ~/zenyatta && ./zen-enter'
+alias zen-logs='cd ~/zenyatta && ./zen-logs'
 
-alias zen-push='cd ~/zenyatta && ./sync.sh'
-alias zen-meld='cd ~/zenyatta && ./audit.sh'
-alias zen-help='echo ""; echo "🧘 Zenyatta Commands"; echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"; echo "  zen-up              Start container"; echo "  zen-down            Stop container"; echo "  zen-rebuild         Rebuild container"; echo "  playground          Enter container"; echo "  zen-logs            View logs"; echo "  zen-push <project>  Push repo to airlock"; echo "  zen-meld <project>  Visual diff (Meld)"; echo "  zen-gitfetch <repo> Clone from GitHub into sandbox"; echo "  zen-help            This list"; echo ""'
-
-zen-gitfetch() {
-  local GITHUB_USER_FILE="$HOME/ai-playground/.zen-github-user"
-  if [ ! -f "$GITHUB_USER_FILE" ]; then
-    echo "❌ No GitHub username configured"
-    echo ""
-    echo "Re-run setup:  cd ~/zenyatta && ./setup.sh"
-    echo "Or set manually: echo 'yourusername' > ~/ai-playground/.zen-github-user"
-    return 1
-  fi
-  local SANDBOX_USER
-  SANDBOX_USER=$(cat "$GITHUB_USER_FILE")
-  if [ -z "$1" ]; then
-    echo "Usage: zen-gitfetch <repo-name>"
-    echo ""
-    echo "Clones git@github.com:$SANDBOX_USER/<repo> into ~/ai-playground/repos/"
-    echo "Uses SSH — ensure your host has SSH keys configured for GitHub."
-    echo ""
-    echo "Current repos:"
-    ls -1 ~/ai-playground/repos/ 2>/dev/null || echo "  (none)"
-    return 0
-  fi
-  if [ -d "$HOME/ai-playground/repos/$1" ]; then
-    echo "⚠️  ~/ai-playground/repos/$1 already exists"
-    return 1
-  fi
-  cd ~/ai-playground/repos && git clone "git@github.com:$SANDBOX_USER/$1.git"
-  cd - > /dev/null
-  echo ""
-  echo "Next: Check out the branch you want (or create one), then: zen-push $1"
-}
+alias zen-push='cd ~/zenyatta && ./zen-push'
+alias zen-meld='cd ~/zenyatta && ./zen-meld'
+alias zen-restore='cd ~/zenyatta && ./zen-restore'
+alias zen-backup='cd ~/zenyatta && ./zen-backup'
+alias zen-nuke='cd ~/zenyatta && ./zen-nuke'
+alias zen-clone='cd ~/zenyatta && ./zen-clone'
+alias zen-status='cd ~/zenyatta && ./zen-status'
+alias zen-doctor='cd ~/zenyatta && ./zen-doctor'
+alias zen-help='cd ~/zenyatta && ./zen-help'
+alias zen-workflow='cd ~/zenyatta && ./zen-workflow'
 # <<< ZENYATTA END <<<
 
 
@@ -134,12 +114,14 @@ ALIASES
 echo "✅ Updated aliases in ~/.bashrc"
 
 # Make scripts executable
-chmod +x sync.sh audit.sh setup.sh 2>/dev/null || true
+echo "🔧 Making scripts executable..."
+chmod +x setup.sh zen-* 2>/dev/null || true
+chmod +x lib/*.sh 2>/dev/null || true
 
-# GitHub username for zen-gitfetch
+# GitHub username for zen-clone
 echo ""
-echo "🔧 GitHub username for zen-gitfetch"
-echo "   This lets you clone repos with: zen-gitfetch <repo-name>"
+echo "🔧 GitHub username for zen-clone"
+echo "   This lets you clone repos with: zen-clone <repo-name>"
 echo ""
 if [ -f ~/ai-playground/.zen-github-user ]; then
     EXISTING_USER=$(cat ~/ai-playground/.zen-github-user)
@@ -169,12 +151,34 @@ echo "▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔�
 echo "✅ Setup Complete!"
 echo "▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔"
 echo ""
+echo "⚠️  IMPORTANT: Activate the new commands"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "The commands have been added to your shell, but you need to reload it."
+echo ""
+echo "Choose one:"
+echo "  1. Run: source ~/.bashrc    (fastest - keeps this terminal)"
+echo "  2. Open a new terminal      (cleanest - fresh start)"
+echo ""
+read -p "Source ~/.bashrc now? (Y/n): " -n 1 -r
+echo
+if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+    echo "🔄 Sourcing ~/.bashrc..."
+    source ~/.bashrc
+    echo "✅ Commands activated!"
+else
+    echo ""
+    echo "💡 Remember: Run 'source ~/.bashrc' before using zen-* commands"
+fi
+
+echo ""
 echo "Clone your project repos here, then check out (or create) the branch you want AI to work on."
 echo ""
 echo "  git clone <url>"
 echo "  cd <project> && git checkout -b ai/feature-name"
 echo ""
-echo "Run zen-help for commands."
+echo "Quick start:"
+echo "  zen-help           # Show all commands"
+echo "  zen-doctor         # Check setup health"
+echo "  zen-workflow       # See complete example"
 echo ""
-
-cd ~/ai-playground && exec $SHELL

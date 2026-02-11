@@ -1,0 +1,58 @@
+#!/bin/bash
+#
+# zen-nuke - Discard WIP copy and start fresh
+# Usage: zen-nuke [project-name]
+#
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/lib/zen-core.sh"
+
+# Check prerequisites
+zen_check_not_in_container || exit 1
+zen_check_setup || exit 1
+
+# Get project name
+PROJECT="${1:-}"
+
+# If no project specified, use last project
+if [[ -z "${PROJECT}" ]]; then
+    PROJECT=$(zen_get_last_project)
+    if [[ -z "${PROJECT}" ]]; then
+        zen_error "No project specified and no previous project found"
+        echo ""
+        echo "Usage: zen-nuke <project-name>"
+        exit 1
+    fi
+    zen_info "Using last project: ${PROJECT}"
+fi
+
+WIP_DIR="${ZEN_WIP}/${PROJECT}"
+
+if [[ ! -d "${WIP_DIR}" ]]; then
+    zen_warn "No WIP directory found for ${PROJECT}"
+    echo "💡 Nothing to nuke"
+    exit 0
+fi
+
+echo "💥 Nuking WIP directory"
+zen_divider
+echo "Target: ${WIP_DIR}"
+echo ""
+echo "⚠️  WARNING: This will delete all AI changes in the airlock!"
+echo "    Your source repo will NOT be affected."
+echo ""
+
+# Require explicit confirmation
+read -p "Type 'nuke' to confirm: " -r
+if [[ $REPLY != "nuke" ]]; then
+    echo "Cancelled (you didn't type 'nuke')"
+    exit 1
+fi
+
+# Nuke it
+rm -rf "${WIP_DIR}"
+zen_success "Nuked ${PROJECT} WIP directory"
+echo ""
+echo "💡 To start fresh: zen-push ${PROJECT}", 

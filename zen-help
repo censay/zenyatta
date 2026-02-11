@@ -1,0 +1,44 @@
+#!/bin/bash
+#
+# zen-help - Show Zenyatta help
+# Usage: zen-help
+#
+
+set -euo pipefail
+
+echo ""
+echo "🧘 Zenyatta Commands"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "WORKFLOW"
+echo "────────"
+echo "  zen-push [proj]     Push repos/ → WIP/airlock"
+echo "  zen-meld [proj]     Backup + compare in Meld"
+echo "  zen-restore [proj]  Restore WIP from backup"
+echo "  zen-backup [proj]   Create explicit backup"
+echo "  zen-nuke [proj]     Discard WIP and start fresh"
+echo ""
+echo "CONTAINER"
+echo "─────────"
+echo "  zen-start           Start container"
+echo "  zen-stop            Stop container"
+echo "  zen-enter           Enter container (also: playground)"
+echo "  zen-logs            View container logs"
+echo ""
+echo "REPOS"
+echo "─────"
+echo "  zen-clone <repo>    Clone from GitHub"
+echo "  zen-status          Show status of everything"
+echo ""
+echo "HELP"
+echo "────"
+echo "  zen-help            Show this help"
+echo "  zen-doctor          Check setup health"
+echo "  zen-workflow        Show complete workflow example"
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "Backups: ~/ai-playground/backup/"
+echo "State:   ~/zenyatta/.states/"
+echo ""
+echo "💡 All commands support [project] argument."
+echo "   If omitted, uses the last project you worked on."

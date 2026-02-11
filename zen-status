@@ -1,0 +1,72 @@
+#!/bin/bash
+#
+# zen-status - Show Zenyatta status
+#
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/lib/zen-core.sh"
+source "${SCRIPT_DIR}/lib/zen-backup.sh"
+
+echo "🧘 Zenyatta Status"
+zen_divider
+
+# Container status
+if command -v podman &>/dev/null; then
+    if podman ps | grep -q zenyatta; then
+        echo "Container: ✅ Running"
+        echo "  Name: zenyatta"
+        echo "  Ports: 5173, 3000, 8080"
+    elif podman ps -a | grep -q zenyatta; then
+        echo "Container: ⏹️  Stopped (exists)"
+        echo "  Start with: zen-start"
+    else
+        echo "Container: ❌ Not created"
+        echo "  Create with: zen-start"
+    fi
+else
+    echo "Container: ⚠️  Podman not found"
+fi
+
+echo ""
+
+# Projects
+echo "📁 Repos: $(ls -1 "${ZEN_REPOS}" 2>/dev/null | wc -l) projects"
+echo "🔒 WIP: $(ls -1 "${ZEN_WIP}" 2>/dev/null | wc -l) projects"
+
+# Show recent WIP
+if [[ -d "${ZEN_WIP}" ]]; then
+    echo ""
+    echo "Recent WIP projects:"
+    ls -1t "${ZEN_WIP}" 2>/dev/null | head -5 | sed 's/^/  /' || echo "  (none)"
+fi
+
+# Backup status
+if [[ -d "${ZEN_BACKUP}" ]]; then
+    local backup_count
+    backup_count=$(ls -1 "${ZEN_BACKUP}"/*-repobak.tar.gz 2>/dev/null | wc -l)
+    echo ""
+    echo "💾 Backups: ${backup_count} repobak(s)"
+    ls -1 "${ZEN_BACKUP}"/*-repobak.tar.gz 2>/dev/null | head -3 | while read -r f; do
+        local size
+        size=$(du -h "$f" 2>/dev/null | cut -f1)
+        echo "  $(basename "$f") (${size})"
+    done
+fi
+
+# Last project
+local last_project
+last_project=$(zen_get_last_project)
+if [[ -n "${last_project}" ]]; then
+    echo ""
+    echo "📝 Last project: ${last_project}"
+    echo "  zen-push ${last_project}    # Push to airlock"
+    echo "  zen-meld ${last_project}    # Review changes"
+fi
+
+echo ""
+zen_divider
+echo "Quick commands:"
+echo "  zen-help          # Show all commands"
+echo "  zen-workflow      # Show workflow example"

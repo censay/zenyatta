@@ -1,0 +1,85 @@
+#!/bin/bash
+#
+# zen-push - Push repository to airlock (WIP/)
+# Usage: zen-push [project-name]
+#
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/lib/zen-core.sh"
+
+# Check prerequisites
+zen_check_not_in_container || exit 1
+zen_check_setup || exit 1
+
+# Get project name
+PROJECT="${1:-}"
+
+# If no project specified, use last project
+if [[ -z "${PROJECT}" ]]; then
+    PROJECT=$(zen_get_last_project)
+    if [[ -z "${PROJECT}" ]]; then
+        zen_error "No project specified and no previous project found"
+        echo ""
+        echo "Usage: zen-push <project-name>"
+        echo ""
+        echo "Available projects:"
+        ls -1 "${ZEN_REPOS}" 2>/dev/null | sed 's/^/  /' || echo "  (none)"
+        exit 1
+    fi
+    zen_info "Using last project: ${PROJECT}"
+fi
+
+# Validate project
+zen_validate_project "${PROJECT}" || exit 1
+
+SOURCE="${ZEN_REPOS}/${PROJECT}"
+AIRLOCK="${ZEN_WIP}/${PROJECT}"
+
+# Save as last project
+zen_set_last_project "${PROJECT}"
+
+echo "🔒 Pushing to airlock"
+zen_divider
+echo "Source:  ${SOURCE}"
+echo "Airlock: ${AIRLOCK}"
+echo ""
+
+# Check for uncommitted changes
+if [[ -d "${SOURCE}/.git" ]]; then
+    cd "${SOURCE}"
+    if ! git diff-index --quiet HEAD -- 2>/dev/null; then
+        zen_warn "Uncommitted changes in source:"
+        git status --short | sed 's/^/  /'
+        echo ""
+        read -p "Continue anyway? (y/N): " -n 1 -r
+        echo
+        [[ ! $REPLY =~ ^[Yy]$ ]] && exit 1
+    fi
+fi
+
+# Create airlock directory
+zen_ensure_dir "${AIRLOCK}"
+
+# Sync with rsync (excluding .git, node_modules, dist, build)
+echo "📦 Syncing files..."
+rsync -av --delete \
+    --exclude=".git" \
+    --exclude="node_modules" \
+    --exclude="dist" \
+    --exclude="build" \
+    "${SOURCE}/" "${AIRLOCK}/"
+
+echo ""
+zen_success "Pushed to airlock"
+echo ""
+echo "Files copied (excluding: .git, node_modules, dist, build)"
+echo ""
+echo "Next steps:"
+echo "  playground              # Enter container"
+echo "  cd /WIP-ai/${PROJECT}   # Navigate to project"
+echo "  claude                  # Start working"
+
+# Return to repo directory
+cd "${SOURCE}"

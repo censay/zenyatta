@@ -1,0 +1,70 @@
+#!/bin/bash
+#
+# zen-workflow - Show complete workflow example
+# Usage: zen-workflow
+#
+
+cat << 'EOF'
+
+🧘 Zenyatta Workflow Example
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SCENARIO: Adding a feature to a project
+
+1. CLONE OR NAVIGATE TO PROJECT
+   $ zen-clone myproject              # Clone from your GitHub
+   # OR
+   $ cd ~/ai-playground/repos/myproject  # Use existing repo
+
+2. PREPARE BRANCH
+   $ git checkout -b ai/feature-name  # Always work on feature branch
+
+3. START WORK
+   $ zen-start                        # Start container (once per session)
+   $ zen-push myproject               # Push to airlock (copies files, excludes .git)
+   $ zen-enter                        # Enter container (or: playground)
+   
+   # Inside container:
+   $ cd /WIP-ai/myproject
+   $ claude "implement feature"       # Work with AI
+   $ exit                             # When done
+
+4. REVIEW CHANGES
+   $ zen-meld myproject               # Opens Meld with backup
+   # In Meld: Review changes, merge RIGHT → LEFT
+   # Close Meld when done
+
+5. COMMIT
+   $ cd ~/ai-playground/repos/myproject
+   $ git status                       # Review what changed
+   $ git add . && git commit -m "AI: implement feature"
+   $ git push origin ai/feature-name
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+QUICK COMMANDS
+
+Resume work:
+  $ zen-enter                        # Enter container
+  $ cd /WIP-ai/myproject && claude   # Continue working
+
+Check status:
+  $ zen-status                       # Container, projects, backups
+
+Made a mistake?
+  $ zen-restore myproject            # Restore WIP from backup
+  $ zen-nuke myproject               # Discard WIP completely
+
+Need help?
+  $ zen-help                         # Show all commands
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+TIPS
+
+• zen-push excludes: .git, node_modules, dist, build
+• Backups are auto-created before zen-meld as repobak.tar.gz
+• All commands accept [project] - if omitted, uses last project
+• You can still use 'playground' instead of 'zen-enter'
+
+EOF

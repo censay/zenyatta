@@ -27,6 +27,10 @@ services:
       # Claude Code auth persistence (survives container rebuilds)
       - ~/ai-playground/.container_claude:/root/.claude:Z
 
+      # OpenCode config persistence
+      - ~/.config/opencode:/root/.config/opencode:Z
+      - ~/.local/state/opencode:/root/.local/state/opencode:Z
+
       # X11 clipboard access - supports native Linux, WSLg (Win11), and WSL2+VcXsrv
       # Native Linux / WSL2+VcXsrv: /tmp/.X11-unix
       # WSLg (Windows 11): /mnt/wslg/.X11-unix (symlinked to /tmp/.X11-unix by WSLg)
